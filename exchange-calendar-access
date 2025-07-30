@@ -1,0 +1,19 @@
+connect-exchangeonline
+
+$users = get-content -path "C:\Temp\users.txt"
+
+foreach ($user in $users) {
+
+    Add-MailboxFolderPermission -Identity ($user + ':\Calendar') -User "USER" -AccessRights Editor
+
+}
+
+
+
+$users = get-content -path "C:\Temp\users.txt"
+
+foreach ($user in $users) {
+
+    Remove-MailboxFolderPermission -Identity ($user + ':\Calendar') -User "USER"
+
+}
