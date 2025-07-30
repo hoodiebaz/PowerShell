@@ -1,0 +1,54 @@
+# Script to retreive all informaion of machine at login and email to me
+# To be added into NETLOGON of DC and applied to all machines at boot via policy
+
+# collect all details of machine
+$Computer = Get-WmiObject -Class Win32_ComputerSystem
+$Bios = Get-WmiObject -Class Win32_BIOS
+$Memory = Get-WmiObject -Class Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum
+$Serial = $Bios.SerialNumber
+$Model = $Computer.model
+$HostName = $Computer.Name
+$User = $env:username
+$Subject = "Details: $User"
+$Domain = $Computer.Domain
+$Manufacturer = $Computer.Manufacturer
+$TotalMemory = "{0:N2}" -f ($Memory.Sum / 1GB) + " GB"
+$ExternalIp = (Invoke-WebRequest -uri "http://ipinfo.io/ip").Content
+$OS = systeminfo | Select-String "OS Name"
+$BootTime = systeminfo | Select-String "System Boot Time"
+$InternalIP = Get-NetIPAddress -AddressFamily "IPv4" -InterfaceAlias WiFi | Select-Object -ExpandProperty IPAddress
+
+# build body of email
+$body = @"
+    User: $User
+    Serial: $serial
+    Hostname: $HostName
+    Manufacturer: $manufacturer
+    Model: $model
+    Domain: $domain
+    Total Physical Memory: $totalMemory
+    Internal IP: $InternalIp
+    External IP: $Externalip
+    $OS
+    $BootTime
+"@
+
+# outline smtp routing details
+$EmailFrom = "Asset Monitoring <EMAIL ADDRESS>"
+$EmailTo = @("EMAIL ADDRESS","EMAIL ADDRESS")
+$Subject = "Asset Collection Data - $env:COMPUTERNAME"
+$SMTPServer = "COMPANY.mail.protection.outlook.com"
+$SMTPPort = 25
+
+# build the email to send
+$SMTPMessage = @{
+    To         = $EmailTo
+    From       = $EmailFrom
+    Subject    = $Subject
+    Body       = $Body
+    SmtpServer = $SMTPServer
+    Port       = $SMTPPort
+}
+
+# send email
+Send-MailMessage @SMTPMessage
