@@ -1,0 +1,21 @@
+# authenticate
+Connect-ExchangeOnline
+
+# get all DDG's
+Get-DynamicDistributionGroup | FL Identity,PrimarySmtpAddress,RecipientFilter
+
+# apply membership rules
+Set-DynamicDistributionGroup "GROUP NAME" `
+    -RecipientFilter { `
+        ((Department -eq "Finance" `
+        -or Department -eq "E-Commerce" `
+        -or Department -eq "CHESS")) `
+        
+        -and ((RecipientType -eq "UserMailbox") `
+        -and (AccountDisabled -eq $false) `
+        -and (Office -eq "Gold Coast"))
+}
+
+# verify membership rules
+$Group = Get-DynamicDistributionGroup "GROUP NAME"
+Get-Recipient -RecipientPreviewFilter $Group.RecipientFilter | Select-Object PrimarySmtpAddress | Export-CSV -Path C:\Temp\groupmember.csv -NoTypeInformation
