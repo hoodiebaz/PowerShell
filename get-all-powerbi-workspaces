@@ -1,0 +1,22 @@
+# install powerbimgmt module
+Install-Module -Name MicrosoftPowerBIMgmt
+
+# login
+Connect-PowerBIServiceAccount
+
+$WorkspaceList = @()
+
+# get all the workspaces in the system
+$WorkSpaces = Get-PowerBIWorkspace -Scope Organization -Type Workspace -All
+
+#get all access rights of all users in all workspaces
+foreach ($WorkSpace in $WorkSpaces) {
+    $WorkspaceList += [PSCustomObject]@{
+        Name = $WorkSpace.Name
+        Id   = $WorkSpace.Id
+
+    }
+}
+
+# Export to CSV
+$WorkspaceList | Export-Csv -Path "C:\Temp\All-PowerBI-Workspaces.csv" -NoTypeInformation
