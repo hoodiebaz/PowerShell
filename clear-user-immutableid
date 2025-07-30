@@ -1,0 +1,16 @@
+# authenticate via MgGraph module
+Connect-MgGraph -Scopes "Directory.ReadWrite.All","User.ReadWrite.All"
+
+# get users required (UPN's)
+$Users = Get-Content -Path "C:\Temp\mg-users.txt"
+
+# loop through each user and nullify the immutable id 
+ForEach ($User in $Users) {
+
+    Write-Host "Start $User"
+    $UserProfile = Get-Mguser -Filter "userPrincipalName eq '$("$User")'"
+    $UserID = $UserProfile.Id
+    # Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/Users/{$UserID}?`$Select=userPrincipalName,displayName,mail,id,OnPremisesImmutableId"
+    Invoke-MgGraphRequest -Method PATCH -Uri "https://graph.microsoft.com/v1.0/users/{$UserID}" -Body @{OnPremisesImmutableId = $null}
+    Write-Host "Finish $User"
+}
