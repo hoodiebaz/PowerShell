@@ -1,0 +1,22 @@
+# authenticate
+Connect-ExchangeOnline
+
+# check existing policies
+Get-RetentionPolicy | Format-Table Name,RetentionId,RetentionPolicyTagLinks
+Get-RetentionPolicyTag | Format-Table Name,Description,RetentionEnabled,AgeLimitForRetention,RetentionAction,Type
+Get-RetentionPolicyTag |  where {$_.RetentionAction -eq 'MoveToArchive'} | Format-Table Name,Description,RetentionEnabled,AgeLimitForRetention,RetentionAction,Type
+
+# create new retention policy and assign tag
+New-RetentionPolicy -Name "POLICY NAME" -RetentionPolicyTagLinks "EXISTING POLICY TAG NAME"
+
+# specify user
+$User = "USER EMAIL ADDRESS"
+
+# get the mailbox and apply the policy
+Get-Mailbox $User | Select-Object ArchiveStatus,RetentionPolicy
+Enable-Mailbox -Identity $User -Archive
+Set-Mailbox -Identity $User -RetentionPolicy "POLICY NAME"
+Get-Mailbox $User | Select-Object ArchiveStatus,RetentionPolicy
+
+# activate the policy asap
+Start-ManagedFolderAssistant -Identity $User
