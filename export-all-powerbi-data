@@ -1,0 +1,59 @@
+# get all the workspaces in the system
+$WorkSpaces = Get-PowerBIWorkspace -Scope Organization -Include All
+
+# Create an array to hold the data
+$ExportDashboards = @()
+$ExportReports = @()
+$ExportDataflows = @()
+$ExportDatasets = @()
+$ExportWorkbooks = @()
+
+# get all data in all workspaces
+foreach ($WorkSpace in $WorkSpaces) {
+
+    $WorkSpace.Dashboards | ForEach-Object {
+        $Dashboard = New-Object PSObject -property @{
+            WorkSpaceName = $WorkSpace.Name
+            DashboardName   = $_.Name
+        }
+        $ExportDashboards += $Dashboard
+    }
+
+    $WorkSpace.Reports | ForEach-Object {
+        $Report = New-Object PSObject -property @{
+            WorkSpaceName = $WorkSpace.Name
+            ReportName   = $_.Name
+        }
+        $ExportReports += $Report
+    }
+
+    $WorkSpace.Dataflows | ForEach-Object {
+        $Dataflow = New-Object PSObject -property @{
+            WorkSpaceName = $WorkSpace.Name
+            DataflowName   = $_.Name
+        }
+        $ExportDataflows += $Dataflow
+    }
+
+    $WorkSpace.Datasets | ForEach-Object {
+        $Dataset = New-Object PSObject -property @{
+            WorkSpaceName = $WorkSpace.Name
+            DatasetName   = $_.Name
+        }
+        $ExportDatasets += $Dataset
+    }
+
+    $WorkSpace.Workbooks | ForEach-Object {
+        $Workbook = New-Object PSObject -property @{
+            WorkSpaceName = $WorkSpace.Name
+            WorkbookName   = $_.Name
+        }
+        $ExportWorkbooks += $Workbook
+    }
+}
+
+$ExportDashboards | Export-Csv -Path "C:\Temp\Dashboards.csv" -NoTypeInformation
+$ExportReports | Export-Csv -Path "C:\Temp\Reports.csv" -NoTypeInformation
+$ExportDataflows | Export-Csv -Path "C:\Temp\Dataflows.csv" -NoTypeInformation
+$ExportDatasets | Export-Csv -Path "C:\Temp\Datasets.csv" -NoTypeInformation
+$ExportWorkbooks | Export-Csv -Path "C:\Temp\Workbooks.csv" -NoTypeInformation
