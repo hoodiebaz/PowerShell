@@ -1,0 +1,33 @@
+# set up modules
+Install-Module -Name SqlServer
+Install-Module -Name AZ.Accounts
+
+# grab the authentication token from azure
+Connect-AzAccount
+$accessToken = (Get-AzAccessToken -ResourceUrl "SERVER ADDRESS").Token
+
+# specify paramets
+$ServerInstance = "SERVER ADDRESS"
+$Database = "DATABASE NAME"
+
+# test connection
+Invoke-Sqlcmd -Query "SELECT GETDATE() AS TimeOfQuery" -ServerInstance $ServerInstance -AccessToken $accessToken
+
+# successful query against dbo.bot table
+Invoke-Sqlcmd -Query "SELECT * From $Database" -ServerInstance $ServerInstance -AccessToken $accessToken
+
+# format data into a table and 
+$Tables = Invoke-Sqlcmd -Query "SELECT * From dbo.bot" -ServerInstance $ServerInstance -AccessToken $accessToken -As DataTables
+$Tables | Export-CSV -Path C:\Temp\sql-dbobot.csv -NoTypeInformation
+
+# get all tables then cycle through them all and export them all
+$Tables = Invoke-Sqlcmd -Query "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG='$Database'" -ServerInstance "$ServerInstance" -AccessToken $accessToken
+ForEach ($Table in $Tables){
+    Write-Host "start"
+    $TableName = $Table.TABLE_NAME
+    $TableData = Invoke-Sqlcmd -Query "SELECT * From dbo.$TableName" -ServerInstance $ServerInstance -AccessToken $accessToken
+    $TableData | Export-CSV -Path C:\Temp\SQL-Export\dbo.$TableName.csv -NoTypeInformation
+    Write-Host "stop"
+}
+
+
