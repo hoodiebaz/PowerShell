@@ -1,0 +1,199 @@
+<#
+Account creation script
+Made by Bailey.Griffiths
+Jul 2023
+#>
+
+# import manually populated csv file
+$ADUsers    = Import-csv "C:\PowerShellScripts\Account Creation\New AD Starters.csv"
+
+# identify group memberships for front/head office
+$FOgroups   = @("#DL_Foxtons Staff", "FOXTONSCORP_Users")
+$HQgroups   = @("#DL_Foxtons Staff", "FOXTONSCORP_Users", "#DL_Chiswick Staff")
+
+# array for users that don't exist in AD
+$ValidUsers     = @()
+
+# error action default
+$ErrorActionPreference = "SilentlyContinue"
+
+#set scope to global to account for both foxtons and alexanderhall domains
+Set-ADServerSettings -ViewEntireForest:$true
+
+# actioning the checks/mailbox creation for each of the $user objects, within the $ADusers array
+foreach ($User in $ADusers)
+{
+    # identify values from CSV import
+    $Email          = $user.email
+    $Firstname      = $user.firstname
+	$Lastname       = $user.lastname
+	$Username       = $user.username
+	$Description    = $user.description
+	$Office         = $user.office
+    $secureString   = $user.password
+    $userpassword   = convertto-securestring $secureString -asplaintext -force
+
+    # check domain
+    switch ($Email) {
+        "$Username@foxtons.co.uk" {
+            $Domain             = "foxtons"
+            #$DomainOU           = "foxtons.co.uk/Users"
+            $DomainController   = "fxtdchq01.foxtons.co.uk"
+        }
+        "$Username@alexanderhall.co.uk" {
+            $Domain             = "alexanderHall"
+            #$DomainOU           = "alexanderhall.co.uk/Users"
+            $DomainController   = "ahldchq01.alexanderhall.co.uk"
+        }
+    }
+
+	# check if the user account already exists in AD
+	if (Get-ADUser -Server "$Domain" -Filter { SamAccountName -eq $Username }) {
+        Write-Warning "$Username already exists in AD"
+	}
+    # if none, create AD account + mailbox and then added $user to $validusers array
+	else {
+        New-RemoteMailbox `
+            -Name "$Firstname $Lastname" `
+            -DomainController $DomainController `
+            -Password $userpassword `
+            -UserPrincipalName "$Username@$Domain.co.uk" `
+            -FirstName $Firstname `
+            -Lastname $Lastname `
+            -PrimarySmtpAddress "$Firstname.$Lastname@$Domain.co.uk" `
+            -RemoteRoutingAddress "$Firstname.$Lastname@foxtons.mail.onmicrosoft.com" `
+            -ResetPasswordOnNextLogon $false `
+            -SamAccountName $Username `
+            #-OnPremisesOrganizationalUnit $DomainOU
+        $ValidUsers += $User
+    }
+}
+
+
+write-host "Accounts are being created, begin 15 second cooldown period, stand by....."
+start-sleep 10
+
+
+foreach ($User in $ValidUsers)
+{
+    # resetting value at start of each loop
+    $Firstname      = $user.Firstname
+    $Lastname       = $user.Lastname
+    $Email          = $user.Email
+    $Username       = $user.Username
+    $Description    = $user.Description
+	$Office         = $user.Office
+
+    # finds the user object and populates the description and office fields
+    Set-ADUser -Identity $user.username -Description $Description
+	Set-ADUser -Identity $user.username -Office $Office
+
+    switch ($Email) {
+        "$Username@foxtons.co.uk" {
+            $Domain = "foxtons"
+        }
+        "$Username@alexanderhall.co.uk" {
+            $Domain = "alexanderhall"
+        }
+    }
+    # location front office ou
+    $FOofficeOU = Get-ADOrganizationalUnit -SearchBase "OU=Front Offices,OU=London,DC=$Domain,DC=co,DC=uk" -Filter * | Where-Object { $_.distinguishedName -Like "OU=$Office*"}
+    if ($FOofficeOU) {
+        $OfficeName = $FOofficeOU.Name
+    }
+
+    # switchboard
+    switch ($Office) {
+        "$OfficeName" {
+            $UserOU = "OU=Users,$FOOfficeOU"     
+            switch($description) {
+                "Sales Negotiator" {
+                    $Groups = @("#DL_$($Office)_Sales", "#DL_$Office") + $FOgroups
+                }
+                "Lettings Negotiator" {
+                    $Groups = @("#DL_$($Office)_Lettings", "#DL_$Office") + $FOgroups
+                }
+                "Office Co-ordinator" {
+                    $Groups = @("#DL_Office-Coordinators", "SG_Office-Coordinators","#DL_$Office","#DL_$($Office)_Sales","#DL_$($Office)_Lettings") + $FOgroups
+                }     
+                "Sales Manager" {
+                    $Groups = @("#DL_$($Office)_Sales", "#DL_$Office", "SG_Sales_Managers") + $FOgroups
+                }
+                "Lettings Manager" {
+                    $Groups = @("#DL_$($Office)_Sales", "#DL_$Office", "SG_Lettings Managers") + $FOgroups
+                }
+                "Sales Valuer" {
+                    $Groups = @("#DL_$($Office)_Sales", "#DL_$Office", "SG_Sales Valuers") + $FOgroups
+                } 
+                "Lettings Valuer" {
+                    $Groups = @("#DL_$($Office)_Sales", "#DL_$Office", "SG_Lettings Valuers") + $FOgroups
+                }        
+                default {
+                    # "default" is for any accounts that do not have a specified job role
+                    $UserOU = "CN=Users,DC=$Domain,DC=co,DC=uk"
+                    $Groups = "#DL_Foxtons Staff"
+                }
+            }
+        }
+        "New Homes" {
+            $UserOU = "OU=Users,OU=New Homes,OU=Head Quarters,OU=London,DC=foxtons,DC=co,DC=uk"
+            $Groups = @("#DL_New Homes", "SG_New Homes") + $FOgroups
+        }
+        "Chiswick Park" {
+            switch($description) {
+                "Property Manager" {
+                    $Groups = @("#DL_Prop_Man_Floor", "#DL_Property Management", "SG_Property_management", "SG_PropMan_Floor") + $HQgroups
+                    $UserOU = "OU=Users,OU=Property Management,OU=Head Quarters,OU=London,DC=foxtons,DC=co,DC=uk"
+                }
+                "Property Assistant" {
+                    $Groups = @("#DL_Prop_Man_Floor", "#DL_Property Management", "SG_Property_management", "SG_PropMan_Floor") + $HQgroups
+                    $UserOU = "OU=Users,OU=Property Management,OU=Head Quarters,OU=London,DC=foxtons,DC=co,DC=uk"
+                }
+                "Move Consultant" {
+                    $Groups = @("#DL_Property Services", "PropertyServices_Calendar_Access") + $HQgroups
+                    $UserOU = "OU=Users,OU=Property Services,OU=Head Quarters,OU=London,DC=foxtons,DC=co,DC=uk"
+                }
+                "New Business Consultant" {
+                    $Groups = @("#DL_New-Business", "New-Business", "SG_New Business" ) + $HQgroups
+                    $UserOU = "OU=Users,OU=New Business,OU=Head Quarters,OU=London,DC=foxtons,DC=co,DC=uk"
+                }
+                "Talent Acquisition Consultant" {
+                    $Groups = @("#DL_Talentacquisition", "recruitment", "SG_Talent_Aquisition", "Training and Recruitment", "SG_Forcepoint - Department - HR", "sg_fxtfilehq01_head office_talent acquisition-modify") + $HQgroups
+                    $UserOU = "OU=Users,OU=Recruitment,OU=Head Quarters,OU=London,DC=foxtons,DC=co,DC=uk"
+                }
+                "Lettings Governance Co-ordinator" {
+                    $Groups = @("#DL_Lettings_Governance_&_Administration-1-441245581","#DL_Prop_Man_Floor","SG_PropMan_Floor","SG_Property_management") + $HQgroups
+                    $UserOU = "OU=Users,OU=Property Management,OU=Head Quarters,OU=London,DC=foxtons,DC=co,DC=uk"
+                }
+                default {
+                $UserOU = "CN=Users,DC=$Domain,DC=co,DC=uk"
+                $Groups = "#DL_Foxtons Staff"
+                }
+            }
+        }
+        default {
+            $UserOU = "CN=Users,DC=$Domain,DC=co,DC=uk"
+            $Groups = "#DL_Foxtons Staff"
+        }
+    }
+
+    # add user to groups
+    foreach ($Group in $Groups) {
+        Add-ADGroupMember -Identity "$Group" -Members $User.Username -ErrorAction $ErrorActionPreference
+        Add-DistributionGroupMember -Identity "$Group" -Member $User.Username -ErrorAction $ErrorActionPreference
+    }
+        
+    # move user to correct ou
+    Move-ADObject -Identity "CN=$FirstName $LastName,CN=Users,DC=$Domain,DC=co,DC=uk" -TargetPath $UserOU
+    
+    # clearng value at end of each loop
+    $Firstname      = @()
+    $Lastname       = @()
+    $Email          = @()
+    $Username       = @()
+    $Description    = @()
+	$Office         = @()
+    $Domain         = @()
+}
+
+Write-Host "Script complete, all accounts created, review above warning messages!"
