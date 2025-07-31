@@ -1,0 +1,31 @@
+# install powerbimgmt module
+Install-Module -Name MicrosoftPowerBIMgmt
+
+# login
+Connect-PowerBIServiceAccount
+
+# get all the workspaces in the system
+$WorkSpaces = Get-PowerBIWorkspace -Scope Organization -Type Workspace
+
+
+# create array to hold the data of users with access
+$UserAccessRights = @()
+
+#get all access rights of all users in all workspaces
+foreach ($WorkSpace in $WorkSpaces) {
+    Write-Host $WorkSpace.Name
+
+    $WorkSpace.Users | ForEach-Object {
+        $UserData = New-Object PSObject -property @{
+            WorkSpaceName = $WorkSpace.Name
+            WorkSpaceID = $WorkSpace.Id
+            UserName      = $_.Identifier
+            AccessRight   = $_.AccessRight
+        }
+
+        $UserAccessRights += $UserData
+
+    }
+}
+
+$UserAccessRights | Export-Csv -Path "C:\Temp\PowerBI-Workspace-Permissions.csv" -NoTypeInformation
