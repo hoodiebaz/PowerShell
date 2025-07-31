@@ -1,0 +1,31 @@
+# if / else within the loop
+foreach ($user in $userList) {
+  if ($currentMembers -contains $user) {
+    Write-Host "$user is already a member of the $groupName group"
+  } else {
+    Add-DistributionGroupMember -Identity $groupName -Member $user
+    Write-Host "$user has been added to the $groupName group"
+  }
+}
+
+# custom headings on table
+$Results = ForEach ($FlowUser in $FlowUsers) {
+    Get-MgUser -UserId "$FlowUser" | Select-Object @{Name="Name"; Expression={$_.DisplayName}}, @{Name="Id"; Expression={$_.Id}}
+}
+
+
+# custom csv building
+$UserAccessRights = @()
+foreach ($WorkSpace in $WorkSpaces) {
+    Write-Host $WorkSpace.Name
+    $WorkSpace.Users | ForEach-Object {
+        $UserData = New-Object PSObject -property @{
+            WorkSpaceName = $WorkSpace.Name
+            WorkSpaceID = $WorkSpace.Id
+            UserName      = $_.Identifier
+            AccessRight   = $_.AccessRight
+        }
+        $UserAccessRights += $UserData
+    }
+}
+
