@@ -117,9 +117,9 @@ Install-Module -Name PnP.PowerShell
 Update-Module-Name PnP.PowerShell
 
 # authenticate connections
-$CNXN_LOD = Connect-PnPOnline -Url "https://makeitmine.sharepoint.com/sites/LegacyOneDriveData" -ClientId "9038278b-374e-4266-8726-5bd647f321f4" -Interactive -ReturnConnection
-$CNXN_ADMIN = Connect-PnPOnline -Url "https://makeitmine-admin.sharepoint.com" -ClientId "9038278b-374e-4266-8726-5bd647f321f4" -Interactive -ReturnConnection
-$CNXN_ONEDRIVE = Connect-PnPOnline -Url "https://makeitmine-my.sharepoint.com/personal/rose_gallagher_aspire42_com_au" -ClientId "9038278b-374e-4266-8726-5bd647f321f4" -Interactive -ReturnConnection
+$CNXN_LOD = Connect-PnPOnline -Url "URL" -ClientId "ID" -Interactive -ReturnConnection
+$CNXN_ADMIN = Connect-PnPOnline -Url "URL" -ClientId "ID" -Interactive -ReturnConnection
+$CNXN_ONEDRIVE = Connect-PnPOnline -Url "URL" -ClientId "ID" -Interactive -ReturnConnection
 
 
 
@@ -131,7 +131,7 @@ ForEach ($OneDrive in $OneDrivesToMigrate) {
 
     # define folder paths
     $OneDriveFolder = "Documents/Apps"
-    $LegacySharepointFolder = "https://makeitmine.sharepoint.com/sites/LegacyOneDriveData/Shared Documents"
+    $LegacySharepointFolder = "URL/Shared Documents"
     $FolderName = $OneDrive.Owner
     $FolderURL = $OneDrive.Link
 
