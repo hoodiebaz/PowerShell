@@ -1,0 +1,15 @@
+
+# install powerbimgmt module
+Install-Module -Name MicrosoftPowerBIMgmt
+
+# login
+Connect-PowerBIServiceAccount
+
+# get all workspaces
+$WorkSpaces = Get-PowerBIWorkspace -Scope Organization -Type PersonalGroup -All | Where-Object State -NE "Deleted" | FL Name, State
+
+# add myself as admin for each workspace
+foreach ($WorkSpace in $WorkSpaces) {
+    Add-PowerBIWorkspaceUser -Scope Organization -Id $WorkSpace.Id -UserEmailAddress "USER" -AccessRight Admin
+    Start-Sleep 2
+}
