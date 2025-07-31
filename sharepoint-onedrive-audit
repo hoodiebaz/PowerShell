@@ -1,0 +1,12 @@
+# authenticate
+Connect-SPOService -Url "URL"
+
+# get all sharepoint sites
+Get-SPOSite -Limit All | Select-Object CreatedTime, LastContentModifiedDate, Status, ArchiveStatus, StorageUsageCurrent, Url, Owner, Title, IsTeamsConnected | Export-CSV -Path C:\Temp\sharepoints.csv -NoTypeInformation
+
+# set me as admin on all sites
+Get-SPOSite -Limit All | ForEach-Object { Set-SPOUser -Site $_.Url -LoginName "MY UPN" -IsSiteCollectionAdmin $true }
+
+# get all onedrives
+Get-SPOSite -IncludePersonalSite $true -Limit all -Filter "Url -like '-my.sharepoint.com/personal/'" | `
+Select-Object Owner, Title, Url, Status, CreatedTime, LastContentModifiedDate, StorageUsageCurrent, StorageQuota
