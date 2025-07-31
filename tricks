@@ -45,3 +45,5 @@ $OnPremEmpyGroups | Export-Csv -Path "C:\Users\bailey.griffiths\OneDrive - Aspir
 
 $Group | Format-List *
 
+
+Get-MgUser -All | Where-Object {$_.UserPrincipalName -eq "UPN"}
