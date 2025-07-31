@@ -1,0 +1,97 @@
+
+## Migrate user onedrive data to sharepoint ##
+# Bailey Griffiths Mar-25
+
+# install + update pnp module
+Install-Module -Name PnP.PowerShell
+Update-Module -Name PnP.PowerShell
+
+# authenticate connections
+$CNXN_LOD = Connect-PnPOnline -Url "DESTINATION SITE" -ClientId "ID" -Interactive -ReturnConnection
+$CNXN_ADMIN = Connect-PnPOnline -Url "ADMIN SITE" -ClientId "ID" -Interactive -ReturnConnection
+
+# Specify static variables
+$LegacyOneDriveDataSharePoint = "DESTINATION SITE/sites/LegacyOneDriveData/Shared Documents"
+
+# Get all user accounts that don't have a license
+$OneDrivesToMigrate = Import-Csv -Path C:\Temp\OneDrivesToMigrate.csv
+
+# Actions looping for each onedrive specified
+ForEach ($OneDrive in $OneDrivesToMigrate) {
+
+    # Set static variables
+    $OneDriveURL = $OneDrive.Link
+    $OneDriveOwner = $OneDrive.Owner
+    Write-Host "starting $OneDriveOwner"
+    $CNXN_ONEDRIVE = Connect-PnPOnline -Url $OneDriveURL -ClientId "ID" -ReturnConnection -Interactive
+    
+    $Error.Clear()
+    Try {
+        Set-PnPTenantSite -Url $OneDriveURL -Owners "MY UPN" -Connection $CNXN_Admin -ErrorAction Stop
+        Write-Host "Admin access given to $OneDriveOwner"
+    } 
+    Catch {
+        Write-Host "❌ Failed to assign admin to $OneDriveOwner $($_.Exception.Message)" -ForegroundColor Red
+        Continue  # Skip to the next iteration in a loop
+    }    
+
+    # Get and restore all deleted items to new folder
+    $ItemsToRestore = Get-PnPRecycleBinItem -RowLimit 10000 -Connection $CNXN_ONEDRIVE
+
+    If ($ItemsToRestore){
+        
+        Write-Host "yes"
+
+        Add-PnPFolder -Name "Restored_Items" -Folder "Documents" -Connection $CNXN_ONEDRIVE
+        
+        Get-PnPRecycleBinItem -RowLimit 10000 -Connection $CNXN_ONEDRIVE | Restore-PnPRecycleBinItem -Connection $CNXN_ONEDRIVE -Force -ErrorAction Continue
+
+        ForEach ($DeletedItem in $ItemsToRestore) {
+            $DeletedItemTitle = $DeletedItem.Title
+            $DeletedItemPath = $DeletedItem.DirName
+            $SourceDeletedItem = "/" + $DeletedItemPath + "/" + $DeletedItemTitle
+            $RenamedTitle = $DeletedItem.Title + "_Restored"
+            Restore-PnPRecycleBinItem -Identity $DeletedItem -RowLimit 10000 -Connection $CNXN_ONEDRIVE -Force
+            
+            Move-PnPFile -SourceUrl $SourceDeletedItem -TargetUrl "Restored_Items" -Connection $CNXN_ONEDRIVE -Force -AllowSchemaMismatch
+        }
+        
+        Write-Host "files restored $OneDriveOwner"
+    } Else {
+        Write-Host "nothing to restore"
+    }
+
+    Write-Host "creating folder for consolidation $OneDriveOwner"
+    # Create folder for user onedrive
+    Add-PnPFolder -Name $OneDriveOwner -Folder "Documents" -Connection $CNXN_ONEDRIVE
+
+
+    Write-Host "OneDrive consolidation stage one  for $OneDriveOwner"
+
+
+    # get all folders/files in onedrive and move to new user folder
+    $Items = Get-PnPFolderItem -Identity "Documents" -Connection $CNXN_ONEDRIVE | Where-Object { $_.Name -notlike "*$OneDriveOwner*"-and $_.Name -notlike "Forms"}
+    foreach ($Item in $Items) {
+        Write-Host "Moving item"
+        $ItemPath = $Item.ServerRelativeUrl
+        Move-PnPFile -SourceUrl $ItemPath -TargetUrl "Documents/$OneDriveOwner" -Connection $CNXN_ONEDRIVE -Force -AllowSchemaMismatch
+    }
+
+    Write-Host "OneDrive consolidation stage two for $OneDriveOwner"
+
+    # get all folders/files in onedrive and move to new user folder    
+    $Items = Get-PnPFolderItem -Identity "Documents" -Connection $CNXN_ONEDRIVE | Where-Object { $_.Name -notlike "*$OneDriveOwner*"-and $_.Name -notlike "Forms"}
+    foreach ($Item in $Items) {
+        Write-Host "Moving item"
+        $ItemPath = $Item.ServerRelativeUrl
+        Move-PnPFile -SourceUrl $ItemPath -TargetUrl "Documents/$OneDriveOwner" -Connection $CNXN_ONEDRIVE -Force -AllowSchemaMismatch
+    }
+
+    Write-Host "Consolidation complete for $OneDriveOwner"
+    $OneDriveFolder = "Documents/" + $OneDriveOwner 
+    $DestinationFolder = $LegacyOneDriveDataSharePoint
+    Move-PnPFile -SourceUrl $OneDriveFolder -TargetUrl $DestinationFolder -Connection $CNXN_ONEDRIVE -AllowSchemaMismatch -Force
+ 
+}
+
+Write-Host "all complete"
