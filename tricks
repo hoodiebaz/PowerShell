@@ -29,3 +29,19 @@ foreach ($WorkSpace in $WorkSpaces) {
     }
 }
 
+
+# all groups syncing on prem with OnPremisesSamAccountName  and no members
+
+$OnPremEmpyGroups = @()
+$groups = Get-MgGroup -all | Where-Object { $_.OnPremisesSyncEnabled -eq $true } | Select-Object DisplayName,OnPremisesSamAccountName, CreatedDateTime, SecurityEnabled, Description, MailEnabled, OnPremisesSyncEnabled, OnPremisesDomainName, Id, OnPremisesLastSyncDateTime
+foreach ($group in $groups) {
+    $members = Get-MgGroupMember -GroupId $group.Id
+    if ($members.Count -eq 0) {
+        Write-Output "$($group.DisplayName) is empty"
+        $OnPremEmpyGroups += $group
+    }
+}
+$OnPremEmpyGroups | Export-Csv -Path "C:\Users\bailey.griffiths\OneDrive - Aspire42\Desktop\Groups.csv" -NoTypeInformation
+
+$Group | Format-List *
+
