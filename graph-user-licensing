@@ -1,0 +1,50 @@
+Connect-MgGraph -Scopes User.ReadWrite.All, Organization.Read.All
+
+Get-MgUserLicenseDetail -UserId $userID | Format-List
+
+$BSUsers = Get-Content -Path C:\Temp\BSUsers.txt
+
+ForEach ($User in SUsers) {
+
+    $MGUser = Get-MgUser -UserId $User
+    $UserID = $MGUser.Id
+
+    $LicenseToAdd = "cbdc14ab-d96c-4c30-b9f4-6ada7cdc1d46"
+
+    $jsonBody = @{
+        addLicenses    = @(@{ skuId = $LicenseToAdd })
+        removeLicenses = @()
+    } | ConvertTo-Json -Depth 10
+
+Invoke-MgGraphRequest -Method POST `
+  -Uri "https://graph.microsoft.com/v1.0/users/$UserId/assignLicense" `
+  -Body $jsonBody `
+  -ContentType "application/json"
+
+  $MGUser = @()
+  $UserID = @()
+
+}
+
+
+ForEach ($User in $BSUsers) {
+
+    $MGUser = Get-MgUser -UserId $User
+    $UserID = $MGUser.Id
+
+    $LicenseToRemove = "4ef96642-f096-40de-a3e9-d83fb2f90211"
+
+    $jsonBody = @{
+        addLicenses = @()
+        removeLicenses = @(@{ skuId = $LicenseToRemove })
+    } | ConvertTo-Json -Depth 10
+
+Invoke-MgGraphRequest -Method POST `
+  -Uri "https://graph.microsoft.com/v1.0/users/$UserId/removeLicense" `
+  -Body $jsonBody `
+  -ContentType "application/json"
+
+  $MGUser = @()
+  $UserID = @()
+
+}
