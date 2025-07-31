@@ -8,11 +8,14 @@ foreach ($user in $userList) {
   }
 }
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # custom headings on table
 $Results = ForEach ($FlowUser in $FlowUsers) {
     Get-MgUser -UserId "$FlowUser" | Select-Object @{Name="Name"; Expression={$_.DisplayName}}, @{Name="Id"; Expression={$_.Id}}
 }
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # custom csv building
 $UserAccessRights = @()
@@ -29,6 +32,7 @@ foreach ($WorkSpace in $WorkSpaces) {
     }
 }
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # all groups syncing on prem with OnPremisesSamAccountName  and no members
 
@@ -45,5 +49,52 @@ $OnPremEmpyGroups | Export-Csv -Path "C:\Users\bailey.griffiths\OneDrive - Aspir
 
 $Group | Format-List *
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+# get filters
 Get-MgUser -All | Where-Object {$_.UserPrincipalName -eq "UPN"}
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# get mggraph sign in
+Get-MgUser -UserId "10e5995a-8767-483c-8627-f5cff271e7f7" -Select SignInActivity | Select -ExpandProperty SignInActivity
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# trust relationship
+$credential = Get-Credential – (enter domain admin account when prompted)
+Reset-ComputerMachinePassword -Server ClosestDomainControllerNameHere
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# continous ping
+Ping.exe -t <HOSTNAME> | ForEach {"{0} - {1}" -f (Get-Date),$_} > C:\users\bailey.griffiths\desktop\ping.txt
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Initialize an empty array to hold the output data
+$OutputData = @()
+# Loop through each user in the list
+foreach ($User in $Users) {
+    # Try to get the Active Directory object for the user
+    try {
+        $ADObject = Get-ADUser -Identity $User -ErrorAction Stop
+    } catch {
+        # If the user was not found, add an entry to the output data with "Not Found" as the status
+        $OutputData += New-Object PSObject -Property @{
+            User = $User
+            Status = "Not Found"
+        }
+        continue
+    }
+    # If the user was found, add an entry to the output data with the enabled/disabled status of the Active Directory object
+    $OutputData += New-Object PSObject -Property @{
+        User = $User
+        Status = if ($ADObject.Enabled) { "Enabled" } else { "Disabled" }
+    }
+}
+# Export the output data to the output file as a CSV
+$OutputData | Export-Csv $OutputFile -NoTypeInformation
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
