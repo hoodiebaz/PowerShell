@@ -1,0 +1,36 @@
+
+$Path = "PATH"
+$PathValid = Test-Path -Path $Path
+
+If ($PathValid -eq $True) {
+
+    Remove-Item -Path $Path -Force
+
+    $Hostname = hostname
+
+    $PathDeleted = Test-Path -Path $Path
+
+    If ($PathDeleted -eq $True ) {
+        $result = "failed"
+    } Else {
+        $result = "complete"
+    }
+
+    $EmailFrom = "DESCRIPTION <EMAIL>"
+        $EmailTo = @("EMAIL")
+        $Subject = "DESCRIPTION $Hostname"
+        $SMTPServer = "MAIL SERVER"
+        $SMTPPort = 25
+        $message_body = "$result"
+
+        $SMTPMessage = @{
+            To         = $EmailTo
+            From       = $EmailFrom
+            Subject    = $Subject
+            Body       = $message_body
+            SmtpServer = $SMTPServer
+            Port       = $SMTPPort
+        }
+
+        Send-MailMessage @SMTPMessage
+}
