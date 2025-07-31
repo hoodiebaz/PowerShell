@@ -95,3 +95,77 @@ ForEach ($OneDrive in $OneDrivesToMigrate) {
 }
 
 Write-Host "all complete"
+
+or maybe this one
+
+
+## Migrate user onedrive data to sharepoint ##
+# Bailey Griffiths Mar-25
+
+## task list
+# get all un-licensed one-drive
+# for each
+# create folder within sharepoint using display name or email
+# restore recycle bin into new folder in onedrive
+# migrate the whole onedrive into new sharepoint folder
+# remove all permissions
+
+
+
+# install + update pnp module
+Install-Module -Name PnP.PowerShell
+Update-Module-Name PnP.PowerShell
+
+# authenticate connections
+$CNXN_LOD = Connect-PnPOnline -Url "https://makeitmine.sharepoint.com/sites/LegacyOneDriveData" -ClientId "9038278b-374e-4266-8726-5bd647f321f4" -Interactive -ReturnConnection
+$CNXN_ADMIN = Connect-PnPOnline -Url "https://makeitmine-admin.sharepoint.com" -ClientId "9038278b-374e-4266-8726-5bd647f321f4" -Interactive -ReturnConnection
+$CNXN_ONEDRIVE = Connect-PnPOnline -Url "https://makeitmine-my.sharepoint.com/personal/rose_gallagher_aspire42_com_au" -ClientId "9038278b-374e-4266-8726-5bd647f321f4" -Interactive -ReturnConnection
+
+
+
+# import onedrive users
+$OneDrivesToMigrate = Import-Csv -Path C:\Temp\OneDrivesToMigrate.csv
+
+# create destination folder
+ForEach ($OneDrive in $OneDrivesToMigrate) {
+
+    # define folder paths
+    $OneDriveFolder = "Documents/Apps"
+    $LegacySharepointFolder = "https://makeitmine.sharepoint.com/sites/LegacyOneDriveData/Shared Documents"
+    $FolderName = $OneDrive.Owner
+    $FolderURL = $OneDrive.Link
+
+    Add-PnPFolder -Name $FolderName -Folder "Shared Documents"
+}
+
+# test connections
+Get-PnPFolder -Url $OneDriveFolder -Connection $CNXN_ONEDRIVE
+Get-PnPFolder -Url $LegacySharepointFolder -Connection $CNXN_LOD
+
+# move folder
+Move-PnPFile -SourceUrl $OneDriveFolder -TargetUrl $LegacySharepointFolder -Connection $CNXN_ONEDRIVE
+
+Get-PnPRecycleBinItem -Connection $CNXN_ONEDRIVE
+
+
+Add-PnPFolder -Name "Restored Items" -Folder "Documents" -Connection $CNXN_ONEDRIVE
+
+$ItemsToRestore = Get-PnPRecycleBinItem -Connection $CNXN_ONEDRIVE
+
+ForEach ($Item in $ItemsToRestore) {
+
+    $ItemTitle = $Item.Title
+    $ItemPath = $Item.DirName
+    $SourceItem = "/" + $ItemPath + "/" + $ItemTitle 
+
+    Restore-PnPRecycleBinItem -Identity $Item -Connection $CNXN_ONEDRIVE -Force
+    Write-Host Item Restored
+    
+    Move-PnPFile -SourceUrl $SourceItem -TargetUrl "Documents/Restored Items" -Connection $CNXN_ONEDRIVE -Force -AllowSchemaMismatch
+    Write-Host Item moved
+}
+
+
+
+
+Move-PnPFile -SourceUrl $SourceOneDrive -TargetUrl $LegacySharepointFolder -Connection $CNXN_ONEDRIVE -Force -AllowSchemaMismatch
