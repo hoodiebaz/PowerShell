@@ -3,9 +3,10 @@ Connect-SPOService -Url "URL"
 
 # get all sharepoint sites
 Get-SPOSite -Limit All | Select-Object CreatedTime, LastContentModifiedDate, Status, ArchiveStatus, StorageUsageCurrent, Url, Owner, Title, IsTeamsConnected | Export-CSV -Path C:\Temp\sharepoints.csv -NoTypeInformation
+Get-SPOSite -Limit All | Where-Object { $_.Title -ne "Redirect" } | Select-Object Title, Url | Export-CSV -Path C:\Temp\sharepoints.csv -NoTypeInformation
 
 # set me as admin on all sites
-Get-SPOSite -Limit All | ForEach-Object { Set-SPOUser -Site $_.Url -LoginName "MY UPN" -IsSiteCollectionAdmin $true }
+Get-SPOSite -Limit All | Where-Object { $_.Title -ne "Redirect" } | ForEach-Object { Set-SPOUser -Site $_.Url -LoginName "MY UPN" -IsSiteCollectionAdmin $true }
 
 # get all onedrives
 Get-SPOSite -IncludePersonalSite $true -Limit all -Filter "Url -like '-my.sharepoint.com/personal/'" | `
