@@ -35,15 +35,15 @@ foreach ($User in $ADusers)
 
     # check domain
     switch ($Email) {
-        "$Username@foxtons.co.uk" {
-            $Domain             = "foxtons"
-            #$DomainOU           = "foxtons.co.uk/Users"
-            $DomainController   = "fxtdchq01.foxtons.co.uk"
+        "$Username@company.co.uk" {
+            $Domain             = "company"
+            #$DomainOU           = "company.co.uk/Users"
+            $DomainController   = "<dcname>.company.co.uk"
         }
-        "$Username@alexanderhall.co.uk" {
-            $Domain             = "alexanderHall"
-            #$DomainOU           = "alexanderhall.co.uk/Users"
-            $DomainController   = "ahldchq01.alexanderhall.co.uk"
+        "$Username@company.co.uk" {
+            $Domain             = "company"
+            #$DomainOU           = "company.co.uk/Users"
+            $DomainController   = "<dcname>.company.co.uk"
         }
     }
 
@@ -61,7 +61,7 @@ foreach ($User in $ADusers)
             -FirstName $Firstname `
             -Lastname $Lastname `
             -PrimarySmtpAddress "$Firstname.$Lastname@$Domain.co.uk" `
-            -RemoteRoutingAddress "$Firstname.$Lastname@foxtons.mail.onmicrosoft.com" `
+            -RemoteRoutingAddress "$Firstname.$Lastname@company.mail.onmicrosoft.com" `
             -ResetPasswordOnNextLogon $false `
             -SamAccountName $Username `
             #-OnPremisesOrganizationalUnit $DomainOU
