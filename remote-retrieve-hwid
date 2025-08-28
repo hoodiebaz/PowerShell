@@ -1,0 +1,42 @@
+# Command to retrieve batch file from web server
+curl -s -o "C:\Temp\HWID-Collection.bat" "https://<web-host>/hwid-collection-batch.txt" && C:\Temp\HWID-Collection.bat
+
+
+# batch file run silently to pull powershell script + run
+@echo off
+powershell.exe Set-ExecutionPolicy -ExecutionPolicy Unrestricted
+curl -o "C:\Temp\HWID-Collection.ps1" "https://<web-host>/hwid-collection-powershell.txt"
+powershell.exe -File C:\Temp\HWID-Collection.ps1
+exit
+
+
+# powershell to get hwid and email away
+$ComputerName = hostname
+$UserName = (whoami).Split('\')[1]
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+New-Item -Type Directory -Path "C:\HWID" -ErrorAction SilentlyContinue
+Set-Location -Path "C:\HWID"
+$env:Path += ";C:\HWID"
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+Install-Script -Name Get-WindowsAutopilotInfo -Force
+Get-WindowsAutopilotInfo -OutputFile AutopilotHWID.csv
+Set-Location "C:\"
+$NewFileName = "AutoPilotHWID_${ComputerName}_${UserName}.csv"
+Rename-Item "C:\HWID\AutopilotHWID.csv" -NewName $NewFileName
+$EmailFrom = "$ComputerName <email>"
+$EmailTo = @("email")
+$Subject = "Hadware Hash Collection - $COMPUTERNAME"
+$SMTPServer = "exchange-server.mail.protection.outlook.com"
+$SMTPPort = 25
+$Attachment = "C:\HWID\$NewFileName"
+$message_body = "yo yo"
+$SMTPMessage = @{
+    To = $EmailTo
+    From = $EmailFrom
+    Subject = $Subject
+    Body = $message_body
+    SmtpServer = $SMTPServer
+    Port = $SMTPPort
+    Attachment = $Attachment
+}
+Send-MailMessage @SMTPMessage
