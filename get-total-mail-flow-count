@@ -30,8 +30,7 @@ ForEach ($Address in $Addresses)
     $TotalSent = $MailSent.Count
     
     # Build CSV data
-    $OutputData += New-Object PSObject -Property
-        @{
+    $OutputData += New-Object PSObject -Property @{
         Sent     = $TotalSent
         Received = $TotalRecieved
         Total    = $TotalRecieved + $TotalSent
