@@ -1,0 +1,45 @@
+# Import and authenticate
+Import-Module ExchangeOnlineManagement -ErrorAction Stop
+Connect-ExchangeOnline
+
+# Specify output CSV path
+$OutputFile = "C:\Temp\MailFlow-Count.csv"
+
+# Set time-frame (YYYY-MM-DD)
+$Start = "2025-10-27" 
+$End = "2025-10-31"
+
+# Specify address/es to search
+$Addresses = @(
+"test1@test.com",
+"test2@test.com"
+)
+
+# Empty catch-all array
+$OutputData = @()
+
+# Loop through each address and collect all mail
+ForEach ($Address in $Addresses)
+    {
+    # Get all mail in both directions
+    $MailRecieved = Get-MessageTraceV2 -RecipientAddress $Address -StartDate $Start -EndDate $End
+    $MailSent = Get-MessageTraceV2 -SenderAddress $Address -StartDate $Start -EndDate $End
+    
+    # Count of all mail in each direction
+    $TotalRecieved = $MailRecieved.Count
+    $TotalSent = $MailSent.Count
+    
+    # Build CSV data
+    $OutputData += New-Object PSObject -Property
+        @{
+        Sent     = $TotalSent
+        Received = $TotalRecieved
+        Total    = $TotalRecieved + $TotalSent
+        Mailbox  = $Address
+        Start    = $Start
+        End      = $End
+        }
+    }
+
+# Export the output data to the output file as a CSV
+$OutputData | Export-Csv $OutputFile -NoTypeInformation
