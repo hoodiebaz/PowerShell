@@ -1,0 +1,47 @@
+# Set location of files to combine
+$Path = "C:\Temp\ToCombine"
+Set-Location $Path
+
+# Get all CSV's
+$CSVsToCombine = Get-ChildItem -Filter *.csv
+$CSVsCount = $CSVsToCombine.Count
+Write-Host "Detected the following CSV files: ($CSVsCount)"
+foreach ($CSV in $CSVsToCombine)
+    {
+    Write-Host " "$CSV.Name
+    }
+
+# Build XLSX file
+$OutputXLSX = "Combined-Data.xlsx"
+Write-Host Creating: $OutputXLSX
+$ExcelApp = New-Object -ComObject Excel.Application
+$ExcelApp.SheetsInNewWorkbook = $CSVsToCombine.Count
+$XLSX = $ExcelApp.Workbooks.Add()
+$Sheet = 1
+
+# Add CSV data into new XLSX file
+foreach ($CSV in $CSVsToCombine)
+    {
+    $Row=1
+    $Column=1
+    $Worksheet = $XLSX.Worksheets.Item($Sheet)
+    $Worksheet.Name = $CSV.Name
+    $File = Get-Content $CSV | ForEach-Object { $_ -replace '"', '' }
+    ForEach($Line in $File)
+        {
+        $LineContents=$Line -Split ',(?!\s*\w+")'
+        foreach($Cell in $LineContents)
+            {
+            $Worksheet.Cells.Item($Row,$Column) = $Cell
+            $Column++
+            }
+        $Column=1
+        $Row++
+        }
+    $Sheet++
+    }
+
+# Export and save XSLX file
+$Output = $Path + "\" + $OutputXLSX
+$XLSX.SaveAs($Output)
+$ExcelApp.Quit()
