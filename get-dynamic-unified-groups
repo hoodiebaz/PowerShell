@@ -1,0 +1,22 @@
+# authenticate
+Connect-ExchangeOnline
+
+# get all M365 groups with dynamic memberships
+$Groups = Get-UnifiedGroup -ResultSize Unlimited | Where-Object {$_.IsMembershipDynamic -eq "True"}
+
+# export group list to csv
+$Groups | Select-Object DisplayName, SharePointSiteUrl, IsMembershipDynamic, GroupMemberCount | Export-Csv -Path C:\Temp\M365groupssites.csv -NoTypeInformation
+
+# export group owners to csv
+$GroupOwners = @()
+ForEach ($Group in $Groups) {
+    $GroupOwner = Get-UnifiedGroupLinks -Identity $Group -LinkType Owners | Select-Object DisplayName
+    ForEach ($Owner in $GroupOwner)
+        {
+        $GroupOwners += New-Object PSObject -Property @{
+            Group = $Group.DisplayName
+            Name = $Owner.DisplayName
+            }
+        }
+}
+$GroupOwners | Export-Csv -Path C:\Temp\365groupssitesowners.csv -NoTypeInformation
