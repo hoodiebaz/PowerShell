@@ -1,0 +1,18 @@
+$GroupID = ""
+
+$Users = Get-Content 'C:\Temp\UsersToAdd.txt'
+
+$Group = Get-MgGroup -Filter "ID eq '$GroupID'"
+
+ForEach ($User in $Users)
+    {
+    $UserToAdd = Get-MgUser -Filter "startsWith(UserPrincipalName, '$User')"
+    If($UserToAdd)
+        {
+        New-MgGroupMember -GroupId $Group.ID -DirectoryObjectId $UserToAdd.ID
+        write-host $UserToAdd.DisplayName Added
+    }   
+    Else {
+        Write-Warning "$User NOT FOUND"
+        }
+    }
