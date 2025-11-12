@@ -1,0 +1,23 @@
+Connect-MgGraph -Scopes "Group.Read.All"
+
+$Groups = Get-Content -Path 'C:\Temp\Groups.txt'
+
+$GroupRules = @()
+
+ForEach ($Group in $Groups)
+    {
+
+    $GroupRule = Get-MgGroup -Filter "DisplayName eq '$Group'" | Select-Object Displayname, MembershipRule
+    
+    $GroupRules += New-Object PSObject -Property @{
+        Group = $GroupRule.DisplayName
+        Rule = $GroupRule.MembershipRule
+        }
+    
+    Write-Host $GroupRule.DisplayName
+    Write-Host $GroupRule.MembershipRule
+    
+    }
+
+$GroupRules | Export-Csv -Path C:\Temp\M365GroupSiteAudit\365groupmembershiprules.csv -NoTypeInformation
+
