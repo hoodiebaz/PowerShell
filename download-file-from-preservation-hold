@@ -1,0 +1,16 @@
+$OneDriveURL = "https://XXX-my.sharepoint.com/personal/XXX"
+
+$CNXN_ADMIN = Connect-PnPOnline -Url "https://XXX-admin.sharepoint.com/" -ClientId "XXX" -Interactive -ReturnConnection
+$CNXN_ONEDRIVE = Connect-PnPOnline -Url $OneDriveURL -ClientId "XXX" -ReturnConnection -Interactive
+
+Set-PnPTenantSite -Url $OneDriveURL -Owners "MY-UPN" -Connection $CNXN_Admin -ErrorAction Stop
+
+$FolderUrl = "$OneDriveURL/PreservationHoldLibrary"
+
+$item = Get-PnPListItem -List "Preservation Hold Library" -FolderServerRelativeUrl $FolderUrl -Fields "FileLeafRef", "FileRef" -Connection $CNXN_ONEDRIVE | Where-Object { $_.FieldValues.FileLeafRef -like "title.mp4" } 
+
+$item | Select-Object Id, @{Label="FileName";Expression={$_.FieldValues.FileLeafRef}}, @{Label="Path";Expression={$_.FieldValues.FileRef}}
+
+$targetFile = "$OneDriveURL/Documents/RecordingRecovered"
+
+Copy-PnPFile -SourceUrl $item.FieldValues.FileRef -TargetUrl $targetFile -Connection $CNXN_ONEDRIVE -Force -AllowSchemaMismatch
