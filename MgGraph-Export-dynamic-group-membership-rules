@@ -1,6 +1,8 @@
 Connect-MgGraph -Scopes "Group.Read.All"
 
-$Groups = Get-Content -Path 'C:\Temp\Groups.txt'
+
+#$Groups = Get-Content -Path 'C:\Temp\Groups.txt'
+#$Groups = Get-MgGroup -All | Where-Object { $_.GroupTypes -contains "DynamicMembership" -and $_.GroupTypes -contains "Unified" }
 
 $GroupRules = @()
 
