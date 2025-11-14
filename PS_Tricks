@@ -2,6 +2,9 @@
 # get commands via module
 Get-Command | Where-Object {$_.Source -eq "PnP.Powershell"}
 
+# get help on commands via online
+Get-Help Export-CSV -Online
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # if / else within the loop
