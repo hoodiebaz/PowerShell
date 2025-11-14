@@ -1,0 +1,49 @@
+
+# Import and authenticate
+Connect-ExchangeOnline
+
+# Specify the date ranges (run on a monday morning)
+$Start = "2025-11-05"
+$End = "2025-11-14"
+
+# Specify address/es to search
+$Addresses = @(
+"test@test.com",
+"test2@test.com"
+)
+
+# Empty catch-all array
+$OutputData = @()
+
+$NewExport = New-Item -Path "C:\Temp\MailFlow-Export" -ItemType Directory
+
+# Loop through each address and collect all mail
+ForEach ($Address in $Addresses)
+    {
+    $MailboxName = ($address -split "@")[0]
+    $MailboxFolder = New-Item -Path (Join-Path $NewExport $MailboxName) -ItemType Directory -Force
+
+    $OutputRecieved = "$MailboxFolder\MailFlow-Recieved-$MailboxName-Week-Ending-$WeekEnd.csv"
+    $OutputSent = "$MailboxFolder\MailFlow-Sent-$MailboxName-Week-Ending-$WeekEnd.csv"
+
+    $MailRecieved = Get-MessageTraceV2 -ResultSize 5000 -RecipientAddress $Address -StartDate $Start -EndDate $End
+    $MailSent = Get-MessageTraceV2 -SenderAddress $Address -StartDate $Start -EndDate $End
+    
+    $MailRecieved | Select-Object Received,SenderAddress,RecipientAddress,Status,Subject | Export-Csv $OutputRecieved -NoTypeInformation
+    $MailSent | Select-Object Received,SenderAddress,RecipientAddress,Status,Subject | Export-Csv $OutputSent -NoTypeInformation
+
+    # Count of all mail in each direction
+    $TotalRecieved = $MailRecieved.Count
+    $TotalSent = $MailSent.Count
+
+    $OutputData += New-Object PSObject -Property @{
+        Total_Sent              = $TotalSent
+        Total_Received          = $TotalRecieved
+        Total_Mail              = $TotalRecieved + $TotalSent
+        Mailbox                 = $Address
+        Start_Date              = $Start
+        End_Date                = $End
+        }
+}
+
+$OutputData | Export-CSV -Path "C:\Temp\MailFlow-Export.csv"
