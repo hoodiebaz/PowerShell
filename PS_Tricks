@@ -1,3 +1,9 @@
+
+# get commands via module
+Get-Command | Where-Object {$_.Source -eq "PnP.Powershell"}
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # if / else within the loop
 foreach ($user in $userList) {
   if ($currentMembers -contains $user) {
