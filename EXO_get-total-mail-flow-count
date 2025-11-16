@@ -1,10 +1,10 @@
-
 # Import and authenticate
 Connect-ExchangeOnline
 
 # Specify the date ranges (run on a monday morning)
-$Start = "2025-11-05"
-$End = "2025-11-14"
+$Start = (Get-Date).AddDays(-7).ToString("yyyy-MM-dd")
+$End = (Get-Date).ToString("yyyy-MM-dd")
+$WeekEnd = (Get-Date).AddDays(-1).ToString("yyyy-MM-dd")
 
 # Specify address/es to search
 $Addresses = @(
@@ -15,18 +15,21 @@ $Addresses = @(
 # Empty catch-all array
 $OutputData = @()
 
-$NewExport = New-Item -Path "C:\Temp\MailFlow-Export" -ItemType Directory
+# Create and define export paths
+$NewWeekFolder = New-Item -Path "C:\Temp\MailFlowCounting\Week_Ending_$WeekEnd" -ItemType Directory
 
 # Loop through each address and collect all mail
 ForEach ($Address in $Addresses)
     {
     $MailboxName = ($address -split "@")[0]
-    $MailboxFolder = New-Item -Path (Join-Path $NewExport $MailboxName) -ItemType Directory -Force
+    $NewMailboxFolder = New-Item -Path (Join-Path $NewWeekFolder $MailboxName) -ItemType Directory -Force
+        
+    # Specify output CSV path
+    $OutputRecieved = "$NewMailboxFolder\MailFlow-Recieved-$MailboxName-Week-Ending-$WeekEnd.csv"
+    $OutputSent = "$NewMailboxFolder\MailFlow-Sent-$MailboxName-Week-Ending-$WeekEnd.csv"
 
-    $OutputRecieved = "$MailboxFolder\MailFlow-Recieved-$MailboxName-Week-Ending-$WeekEnd.csv"
-    $OutputSent = "$MailboxFolder\MailFlow-Sent-$MailboxName-Week-Ending-$WeekEnd.csv"
-
-    $MailRecieved = Get-MessageTraceV2 -ResultSize 5000 -RecipientAddress $Address -StartDate $Start -EndDate $End
+    # Get all mail in both directions
+    $MailRecieved = Get-MessageTraceV2 -RecipientAddress $Address -StartDate $Start -EndDate $End
     $MailSent = Get-MessageTraceV2 -SenderAddress $Address -StartDate $Start -EndDate $End
     
     $MailRecieved | Select-Object Received,SenderAddress,RecipientAddress,Status,Subject | Export-Csv $OutputRecieved -NoTypeInformation
@@ -36,14 +39,17 @@ ForEach ($Address in $Addresses)
     $TotalRecieved = $MailRecieved.Count
     $TotalSent = $MailSent.Count
 
+    # Build CSV data
     $OutputData += New-Object PSObject -Property @{
         Total_Sent              = $TotalSent
         Total_Received          = $TotalRecieved
         Total_Mail              = $TotalRecieved + $TotalSent
         Mailbox                 = $Address
         Start_Date              = $Start
-        End_Date                = $End
+        End_Date                = $WeekEnd
         }
 }
 
-$OutputData | Export-CSV -Path "C:\Temp\MailFlow-Export.csv"
+$OutputData | Export-CSV -Path "$NewWeekFolder\MailFlow-Stats-Week-Ending-$WeekEnd.csv"
+
+
