@@ -23,6 +23,7 @@ Connect-AzAccount `
   -Tenant $TenantId `
   -ServicePrincipal
 
+
 ########## MgGraph ##########
 $ClientId = ""
 $TenantId = ""
