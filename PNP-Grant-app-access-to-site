@@ -1,0 +1,21 @@
+
+$OneDriveURL = ""
+
+$AppID = ""
+
+$AppName = ""
+
+$Site = ""
+
+$cnxn = Connect-PnPOnline -Url $OneDriveURL -ClientId "" -ReturnConnection -Interactive
+
+# Then grant the app access
+Grant-PnPAzureADAppSitePermission `
+    -AppId $AppID `
+    -DisplayName $AppName `
+    -Site $Site `
+    -Permissions FullControl `
+    -Connection $cnxn
+
+
+Get-PnPFolderItem -FolderSiteRelativeUrl $LibraryName -ItemType File -Connection $cnxn
