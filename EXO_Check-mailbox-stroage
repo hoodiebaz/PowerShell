@@ -1,0 +1,22 @@
+
+Connect-ExchangeOnline
+
+$Mailboxes = Get-Mailbox -RecipientTypeDetails UserMailbox -ResultSize Unlimited
+$MailboxStats = $Mailboxes | Get-EXOMailboxStatistics
+$MailboxStats |
+    Select-Object DisplayName, @{Name="TotalItemSize (GB)";Expression={[math]::Round(($_.TotalItemSize.Value.ToBytes()/ 1GB), 2)}} |
+    Sort-Object -Property "TotalItemSize (GB)" |
+    Select-Object -Last 20 |
+    Sort-Object -Property "TotalItemSize (GB)" -Descending |
+    Format-Table
+
+
+
+$SharedMailboxes = Get-Mailbox -RecipientTypeDetails SharedMailbox -ResultSize Unlimited
+$SharedMailboxStats = $SharedMailboxes | Get-EXOMailboxStatistics
+$SharedMailboxStats |
+    Select-Object DisplayName, @{Name="TotalItemSize (GB)";Expression={[math]::Round(($_.TotalItemSize.Value.ToBytes()/ 1GB), 2)}} |
+    Sort-Object -Property "TotalItemSize (GB)" |
+    Select-Object -Last 20 |
+    Sort-Object -Property "TotalItemSize (GB)" -Descending |
+    Format-Table
