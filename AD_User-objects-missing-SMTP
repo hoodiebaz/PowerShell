@@ -1,0 +1,17 @@
+$UsersMissingSMTP = [System.Collections.Generic.List[object]]::new()
+
+Get-ADUser -Filter 'enabled -eq $true' -Properties proxyAddresses,mail |
+ForEach-Object {
+
+    Write-Host "Checking: $($_.Name)"
+
+    $hasSmtp = ($_.proxyAddresses | Where-Object { $_ -match '^(?i)smtp:' } | Measure-Object).Count -gt 0
+
+    if (-not $hasSmtp) {
+        Write-Host "  -> NO SMTP in proxyAddresses" -ForegroundColor Yellow
+        $UsersMissingSMTP.Add($_)
+    }
+}
+
+# Optional: show results
+$UsersMissingSMTP | Select-Object Name,SamAccountName,Mail,ProxyAddresses
