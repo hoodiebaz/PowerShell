@@ -1,0 +1,42 @@
+
+Connect-MgGraph -Scopes "Group.Read.All","User.Read.All"
+
+$GroupId = ""
+
+$group = Get-MgGroup -GroupId $GroupId
+
+$roles = @(
+    @{ Role = "Member"; Objects = Get-MgGroupMember -GroupId $GroupId -All }
+    @{ Role = "Owner";  Objects = Get-MgGroupOwner  -GroupId $GroupId -All }
+)
+
+$results = foreach ($r in $roles) {
+    foreach ($obj in $r.Objects) {
+
+        # Only users have UPNs — skip devices/service principals unless you want them
+        if ($obj.AdditionalProperties.'@odata.type' -eq '#microsoft.graph.user') {
+
+            $user = Get-MgUser -UserId $obj.Id -Property DisplayName,UserPrincipalName
+
+            [PSCustomObject]@{
+                GroupName          = $group.DisplayName
+                Role               = $r.Role
+                DisplayName        = $user.DisplayName
+                UserPrincipalName  = $user.zUserPrincipalName
+                ObjectType         = "User"
+            }
+        }
+        else {
+            # Non-user objects (groups, devices, SPNs)
+            [PSCustomObject]@{
+                GroupName          = $group.DisplayName
+                Role               = $r.Role
+                DisplayName        = $obj.AdditionalProperties.displayName
+                UserPrincipalName  = $null
+                ObjectType         = $obj.AdditionalProperties.'@odata.type'
+            }
+        }
+    }
+}
+
+$results | Export-Csv "C:\Temp\$($group.DisplayName)-GroupMembership.csv" -NoTypeInformation
