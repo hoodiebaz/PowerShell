@@ -1,0 +1,34 @@
+Connect-SpoService -Url ""
+
+$ReportEntities = @(
+"SharingLinks_Anyone",`
+"SharingLinks_PeopleInYourOrg",`
+"SharingLinks_Guests",`
+"SensitivityLabelForFiles",`
+"EveryoneExceptExternalUsersAtSite",`
+"EveryoneExceptExternalUsersForItems",`
+"PermissionedUsers",`
+"PermissionsReport"
+)
+
+$ExportResults = @()
+
+ForEach ($ReportEntity in $ReportEntities)
+    {
+    $Report = Get-SPODataAccessGovernanceInsight -ReportEntity $ReportEntity | Select-Object *
+    $ExportResults += $Report
+    Write-Host "$ReportEntity Complete"
+    }
+
+$ExportResults | Export-CSV -Path "C:\Temp\SPO-Reports.csv" -NoTypeInformation
+
+
+
+
+Start-SPODataAccessGovernanceInsight -ReportEntity SharingLinks_Anyone -Workload SharePoint -ReportType RecentActivity
+Start-SPODataAccessGovernanceInsight -ReportEntity SharingLinks_PeopleInYourOrg -Workload SharePoint -ReportType RecentActivity
+Start-SPODataAccessGovernanceInsight -ReportEntity SharingLinks_Guests -Workload SharePoint -ReportType RecentActivity
+Start-SPODataAccessGovernanceInsight -ReportEntity EveryoneExceptExternalUsersAtSite -Workload SharePoint -ReportType RecentActivity -Name "EEEUatSite"
+Start-SPODataAccessGovernanceInsight -ReportEntity EveryoneExceptExternalUsersForItems -Workload SharePoint -ReportType RecentActivity -Name "EEEUatFile"
+Start-SPODataAccessGovernanceInsight -ReportEntity PermissionedUsers -Workload SharePoint -ReportType Snapshot -Name "SitePermissionsAboveZero" -CountOfUsersMoreThan 0
+Start-SPODataAccessGovernanceInsight -ReportEntity PermissionsReport -Workload SharePoint -ReportType Snapshot -Name "SitePermissionsOfUsers" -UserEmailList "bgoodman-griffiths@goldcoast.qld.gov.au"
