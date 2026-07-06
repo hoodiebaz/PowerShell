@@ -1,0 +1,15 @@
+
+$SharePointAdminURL = ""
+
+$EntraAppID = ""
+
+Connect-PnPOnline $SharePointAdminURL -ClientId $EntraAppID
+
+$OneDriveSites = Get-PnPTenantSite -IncludeOneDriveSites -Filter "Url -like '-my.sharepoint.com/personal/'"
+
+$OneDriveSites |
+    Select-Object Owner, Url, StorageQuota, StorageUsageCurrent, @{Name='PercentUsed'; Expression = { [math]::Round(($_.StorageUsageCurrent / $_.StorageQuota) * 100, 2) }} |
+    Sort-Object -Property PercentUsed |
+    Select-Object -Last 20 |
+    Sort-Object -Property PercentUsed -Descending |
+    Format-Table
