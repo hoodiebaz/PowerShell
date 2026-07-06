@@ -1,0 +1,35 @@
+
+$SiteURL = "https://cityofgoldcoast.sharepoint.com/sites/PR-CD-WIKI"
+
+Connect-PnPOnline $SiteURL -ClientId ""
+
+$Site = Get-PnPTenantSite -Identity $SiteURL
+
+Add-PnPSiteCollectionAdmin -Owners ""
+
+
+$URL = $Site.Url
+$SiteName = ($url -split "/sites/")[1]
+
+$roles = @(
+  @{ Role = "Owners";   GroupName = "$($Site.Title) Owners" }
+  @{ Role = "Members";  GroupName = "$($Site.Title) Members" }
+  @{ Role = "Visitors"; GroupName = "$($Site.Title) Visitors" }
+)
+
+
+$results = foreach ($r in $roles) {
+  Get-PnPGroupMember -Identity $r.GroupName | ForEach-Object {
+    [PSCustomObject]@{
+      SiteTitle        = $Site.Title
+      Role             = $r.Role
+      GroupName        = $r.GroupName
+      DisplayName      = $_.Title
+      UserPrincipalName= $_.UserPrincipalName
+      PrincipalType    = $_.PrincipalType
+      IsSiteAdmin      = $_.IsSiteAdmin
+    }
+  }
+}
+
+$results | Export-Csv "C:\Temp\$($Site.Title)-SiteMembership.csv" -NoTypeInformation
