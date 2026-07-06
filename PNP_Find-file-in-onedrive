@@ -1,0 +1,19 @@
+
+
+$FileTitle = "Bankwest"
+
+$OneDriveURL = ""
+
+$ClientID = ""
+
+$PresHoldUrl = "$OneDriveURL/PreservationHoldLibrary"
+
+$CNXN_ONEDRIVE = Connect-PnPOnline -Url $OneDriveURL -ClientId $ClientID -ReturnConnection -Interactive
+
+Get-PnPListItem -List "Documents" -PageSize 2000 -Connection $CNXN_ONEDRIVE | Where-Object { $_.Title -like "*$FileTitle*" } | Select Title, DeletedByName, DeletedDate, DirName
+
+Get-PnPRecycleBinItem -RowLimit 10000 -Connection $CNXN_ONEDRIVE | Where-Object { $_.Title -like "*$FileTitle*" } | Select Title, DeletedByName, DeletedDate, DirName
+
+Get-PnPRecycleBinItem -SecondStage -RowLimit 10000 -Connection $CNXN_ONEDRIVE | Where-Object { $_.Title -like "*$FileTitle*" } | Select Title, DeletedByName, DeletedDate, DirName
+
+Get-PnPListItem -List "Preservation Hold Library" -FolderServerRelativeUrl $FolderUrl -Fields "FileLeafRef", "FileRef" -Connection $CNXN_ONEDRIVE | Select-Object Id, @{Label="FileName";Expression={$_.FieldValues.FileLeafRef}}, @{Label="Path";Expression={$_.FieldValues.FileRef}} | Where-Object { $_.FileName -like "*$FileTitle*" }
