@@ -1,0 +1,27 @@
+
+$Subject = ""
+$Pwd = ""
+
+# Create the certificate
+$cert = New-SelfSignedCertificate `
+    -Subject "CN=$Subject" `
+    -CertStoreLocation "Cert:\CurrentUser\My" `
+    -KeyExportPolicy Exportable `
+    -KeySpec Signature `
+    -KeyLength 2048 `
+    -HashAlgorithm SHA256 `
+    -NotAfter (Get-Date).AddYears(2)
+
+# Export public key for Azure AD
+Export-Certificate -Cert $cert -FilePath "C:\temp\$Subject.cer"
+
+# Note your thumbprint
+Write-Host "Thumbprint: $($cert.Thumbprint)"
+
+
+$password = ConvertTo-SecureString -String $Pwd -AsPlainText -Force
+
+Export-PfxCertificate `
+    -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
+    -FilePath "C:\temp\$Subject.pfx" `
+    -Password $password
