@@ -1,0 +1,92 @@
+##### MGGraph_Add-users-to-entra-group.ps1 #####
+## Bailey Griffiths
+## Nov 2025
+
+
+# Install module
+#Install-Module Microsoft.Graph
+
+
+# Authenticate to MgGraph
+Connect-MgGraph -Scopes "User.ReadWrite.All, Group.ReadWrite.All"
+
+
+# Specify Object ID of group from entra
+$GroupID = Read-Host "Please enter Object ID of Entra Group"
+
+
+# Import list of users from text file using UserPrincipalName
+$FileLocation = Read-Host "Please provide full file path of .txt file"
+$Users = Get-Content $FileLocation
+
+# Empty array to catch users not found
+$UsersNotAdded = @()
+
+
+# Get the group from entra using $GroupID variable and assign to $Group variable
+
+If ($Group = Get-MgGroup -Filter "ID eq '$GroupID'" -ErrorAction SilentlyContinue) # if group found
+    {
+    Write-Host "$($Group.DisplayName) group found"
+    }
+Else # if group not found
+    {
+    Write-Error "$($Group.DisplayName) group NOT found"
+    Exit
+    }
+
+
+# Loop through each user in the $Users variable populated from text file
+ForEach ($User in $Users)
+    {
+
+    # Get the user from entra by searching for $User variable and assign to $UserToModify variable
+    $UserToModify = Get-MgUser -Filter "startsWith(Mail, '$User')"
+
+    # Fork based on if the user is found in entra
+    If ($UserToModify) # if user is found
+        { 
+
+        # Check if user already in group by searching for their id in group
+        $ExistingMembers = Get-MgGroupMember -GroupId $Group.Id -All | Where-Object { $_.Id -eq $UserToModify.Id }
+
+        If ($ExistingMembers) # if already in group
+            { 
+
+            # confirmation text of already in group
+            Write-Warning "$($UserToModify.DisplayName) is already a member of the group"
+            }
+
+        Else # if not already member
+            { 
+
+            # Add  user to  group
+            New-MgGroupMember -GroupId $Group.Id -DirectoryObjectId $UserToModify.Id
+
+            # confirmation text of added to group
+            Write-Host "$($UserToModify.DisplayName) added to the group" -ForegroundColor Green
+            }
+
+        }
+
+    Else # if user not found
+        { 
+        
+        # output warning text
+        Write-Warning "$User NOT FOUND"
+
+        # add not found user to array for later reference
+        $UsersNotAdded += $User
+
+        }
+    }
+
+Write-Host "All users added to group" -ForegroundColor Blue
+Write-Host "Please check below users not found" -ForegroundColor Blue
+
+# loop through all failed users
+ForEach ($User in $UsersNotAdded)
+    {
+    # output warning text
+    Write-Warning "$User NOT FOUND"        
+    }
